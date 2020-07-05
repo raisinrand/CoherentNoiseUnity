@@ -1,12 +1,17 @@
-﻿using UnityEngine;
+﻿using UnityEditor;
+using UnityEngine;
 using UnityEngine.Rendering;
 
-public class CustomRenderPipeline : RenderPipeline
+public partial class CustomRenderPipeline : RenderPipeline
 {
-    Material testPost;
+    static Material testPost;
+    static Material errorMaterial;
+    static Material motionVectorMaterial;
+    
+
     public CustomRenderPipeline(Material testPost)
     {
-        this.testPost = testPost;
+        CustomRenderPipeline.testPost = testPost;
     }
 
     const string bufferName = "Main Render";
@@ -37,6 +42,8 @@ public class CustomRenderPipeline : RenderPipeline
 
     void Render(ScriptableRenderContext context, Camera camera)
     {
+        GenMaterials();
+
         if (!Cull(context, camera))
         {
             return;
@@ -48,10 +55,20 @@ public class CustomRenderPipeline : RenderPipeline
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
 
+        DrawMotionVectors(context,camera);
         DrawVisibleGeometry(context, camera);
+        DrawUnsupportedShaders(context, camera);
+        DrawGizmos(context, camera);
 
         Submit(context, camera);
 
+    }
+
+    void GenMaterials() {
+		if (errorMaterial == null)
+			errorMaterial = new Material(Shader.Find("Hidden/InternalErrorShader"));
+		if (motionVectorMaterial == null)
+			motionVectorMaterial = new Material(Shader.Find("Hidden/MotionVectors"));
     }
 
     void Setup(ScriptableRenderContext context, Camera camera)
@@ -105,12 +122,57 @@ public class CustomRenderPipeline : RenderPipeline
         filteringSettings.renderQueueRange = RenderQueueRange.transparent;
         context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
 
-
         // POST
         ImageEffectBlit(buffer, testPost);
-
-
+        
+        // buffer.Blit(BuiltinRenderTextureType.MotionVectors, BuiltinRenderTextureType.CurrentActive);
     }
+
+    void DrawMotionVectors(ScriptableRenderContext context, Camera camera)
+    {
+        // motionVectorMaterial.SetMatrix("PreviousVP", CameraMatrixProvider.GetPreviousVPMatrix(camera));
+        // motionVectorMaterial.SetMatrix("NonJitteredVP", CameraMatrixProvider.GetVPMatrix(camera));
+
+        // buffer.SetRenderTarget(BuiltinRenderTextureType.MotionVectors, BuiltinRenderTextureType.CameraTarget);
+        // foreach (var component in DrawMeshWithMotionVectors.instances)
+        // {
+        //     motionVectorMaterial.SetMatrix("PreviousM", component.previousModelMatrix);
+        //     // TODO: no motion vectors rt so just make my own ?!?!?!?!!?!?!?!?!??
+        //     buffer.DrawMesh(component.mesh, component.transform.localToWorldMatrix, motionVectorMaterial, 0, 0);
+
+        // }
+    }
+
+
+    partial void DrawGizmos(ScriptableRenderContext context, Camera camera);
+    partial void DrawUnsupportedShaders(ScriptableRenderContext context, Camera camera);
+
+
+#if UNITY_EDITOR
+    partial void DrawGizmos(ScriptableRenderContext context, Camera camera)
+    {
+        if (Handles.ShouldRenderGizmos())
+        {
+            context.DrawGizmos(camera, GizmoSubset.PreImageEffects);
+            context.DrawGizmos(camera, GizmoSubset.PostImageEffects);
+        }
+    }
+    partial void DrawUnsupportedShaders(ScriptableRenderContext context, Camera camera)
+    {
+        var drawingSettings = new DrawingSettings(legacyShaderTagIds[0], new SortingSettings(camera))
+        {
+            overrideMaterial = errorMaterial
+        };
+
+        for (int i = 1; i < legacyShaderTagIds.Length; i++)
+        {
+            drawingSettings.SetShaderPassName(i, legacyShaderTagIds[i]);
+        }
+
+        var filteringSettings = FilteringSettings.defaultValue;
+        context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
+    }
+#endif
 
     static void ImageEffectBlit(CommandBuffer buf, Material material)
     {

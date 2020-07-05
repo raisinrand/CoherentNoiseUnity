@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ef020e90af6ad83489edb51c967fe8d2
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - _mesh: {instanceID: 0}
+  - _material: {instanceID: 0}
+  - _motionVectorShader: {fileID: 4800000, guid: 86cd3f6c489d0dd439aa393a35145e9c,
+      type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
