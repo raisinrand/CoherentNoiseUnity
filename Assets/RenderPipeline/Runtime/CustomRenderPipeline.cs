@@ -1,24 +1,33 @@
 ﻿using UnityEditor;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
 public partial class CustomRenderPipeline : RenderPipeline
 {
+    public enum DisplayMode {
+        Standard,
+        ShowMotionVectors,
+        ShowNoiseTex
+    }
+
+
     static Material testPost;
-    static Material errorMaterial;
-    static Material motionVectorMaterial;
+    static Material errorMat;
+    static Material motionVectorMat;
+    static Material coherentNoiseMat;
+
+    static RTHandle motionVectorsRT;
+    static RTHandle coherentNoiseRT;
     
+    public static DisplayMode displayMode = DisplayMode.Standard;
 
     public CustomRenderPipeline(Material testPost)
     {
         CustomRenderPipeline.testPost = testPost;
     }
 
-    const string bufferName = "Main Render";
-    CommandBuffer buffer = new CommandBuffer
-    {
-        name = bufferName
-    };
+    CommandBuffer buffer = new CommandBuffer { name = "Main Render" };
 
     CullingResults cullingResults = new CullingResults();
 
@@ -31,6 +40,10 @@ public partial class CustomRenderPipeline : RenderPipeline
         new ShaderTagId("VertexLMRGBM"),
         new ShaderTagId("VertexLM")
     };
+
+
+    public CustomRenderPipeline() {
+    }
 
     protected override void Render(ScriptableRenderContext context, Camera[] cameras)
     {
@@ -51,30 +64,42 @@ public partial class CustomRenderPipeline : RenderPipeline
 
         Setup(context, camera);
 
-
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
 
         DrawMotionVectors(context,camera);
+        DrawCoherentNoise(context,camera);
         DrawVisibleGeometry(context, camera);
         DrawUnsupportedShaders(context, camera);
-        DrawGizmos(context, camera);
+
+        // POST
+        // ImageEffectBlit(buffer, testPost);
+        if(displayMode == DisplayMode.ShowMotionVectors) {
+            buffer.Blit(motionVectorsRT,BuiltinRenderTextureType.CameraTarget);
+        } else if(displayMode == DisplayMode.ShowNoiseTex) {
+            buffer.Blit(coherentNoiseRT,BuiltinRenderTextureType.CameraTarget);
+        }
+
+
+        // DrawGizmos(context, camera);
 
         Submit(context, camera);
 
     }
 
     void GenMaterials() {
-		if (errorMaterial == null)
-			errorMaterial = new Material(Shader.Find("Hidden/InternalErrorShader"));
-		if (motionVectorMaterial == null)
-			motionVectorMaterial = new Material(Shader.Find("Hidden/MotionVectors"));
+		if (errorMat == null)
+			errorMat = new Material(Shader.Find("Hidden/InternalErrorShader"));
+		if (motionVectorMat == null)
+			motionVectorMat = new Material(Shader.Find("Hidden/MotionVectors"));
+        if (coherentNoiseMat == null)
+            coherentNoiseMat = new Material(Shader.Find("Hidden/CoherentNoise"));
     }
 
     void Setup(ScriptableRenderContext context, Camera camera)
     {
         buffer.ClearRenderTarget(true, true, Color.clear);
-        buffer.BeginSample(bufferName);
+        buffer.BeginSample("Render");
         ExecuteBuffer(context, camera);
         context.SetupCameraProperties(camera);
     }
@@ -91,7 +116,7 @@ public partial class CustomRenderPipeline : RenderPipeline
 
     void Submit(ScriptableRenderContext context, Camera camera)
     {
-        buffer.EndSample(bufferName);
+        buffer.EndSample("Render");
         ExecuteBuffer(context, camera);
         context.Submit();
     }
@@ -106,7 +131,8 @@ public partial class CustomRenderPipeline : RenderPipeline
     {
         // OPAQUE
         var sortingSettings = new SortingSettings(camera) { criteria = SortingCriteria.CommonOpaque };
-        var drawingSettings = new DrawingSettings(unlitShaderTagId, sortingSettings);
+        var drawingSettings = new DrawingSettings(unlitShaderTagId, sortingSettings) {
+        };
         var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
 
         context.DrawRenderers(
@@ -117,30 +143,51 @@ public partial class CustomRenderPipeline : RenderPipeline
         context.DrawSkybox(camera);
 
         // TRANSPARENT
-        sortingSettings.criteria = SortingCriteria.CommonTransparent;
-        drawingSettings.sortingSettings = sortingSettings;
-        filteringSettings.renderQueueRange = RenderQueueRange.transparent;
-        context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
-
-        // POST
-        ImageEffectBlit(buffer, testPost);
-        
-        // buffer.Blit(BuiltinRenderTextureType.MotionVectors, BuiltinRenderTextureType.CurrentActive);
+        // sortingSettings.criteria = SortingCriteria.CommonTransparent;
+        // drawingSettings.sortingSettings = sortingSettings;
+        // filteringSettings.renderQueueRange = RenderQueueRange.transparent;
+        // context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
     }
 
     void DrawMotionVectors(ScriptableRenderContext context, Camera camera)
     {
-        // motionVectorMaterial.SetMatrix("PreviousVP", CameraMatrixProvider.GetPreviousVPMatrix(camera));
-        // motionVectorMaterial.SetMatrix("NonJitteredVP", CameraMatrixProvider.GetVPMatrix(camera));
+        if(motionVectorsRT == null) {
+            // TODO: initailize to 1920x1080 because dynamic scale doesn't work
+            motionVectorsRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
+            colorFormat: GraphicsFormat.R16G16_SFloat,
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "MotionVectors");
+            // TODO: MIGHT NOT WORK HERE WE'LL SEE
+            buffer.SetGlobalTexture("_MotionVectorsRT",motionVectorsRT);
+        }
 
-        // buffer.SetRenderTarget(BuiltinRenderTextureType.MotionVectors, BuiltinRenderTextureType.CameraTarget);
-        // foreach (var component in DrawMeshWithMotionVectors.instances)
-        // {
-        //     motionVectorMaterial.SetMatrix("PreviousM", component.previousModelMatrix);
-        //     // TODO: no motion vectors rt so just make my own ?!?!?!?!!?!?!?!?!??
-        //     buffer.DrawMesh(component.mesh, component.transform.localToWorldMatrix, motionVectorMaterial, 0, 0);
+        buffer.SetRenderTarget(motionVectorsRT);
+        buffer.ClearRenderTarget(true,true,Color.black);
 
-        // }
+        buffer.SetGlobalMatrix("_PreviousVP", CameraMatrixProvider.GetPreviousVPMatrix(camera));
+        buffer.SetGlobalMatrix("_NonJitteredVP", CameraMatrixProvider.GetVPMatrix(camera));
+        foreach (var component in MotionVectorData.instances)
+        {
+            buffer.SetGlobalMatrix("_PreviousM", component.previousModelMatrix);
+            buffer.DrawMesh(component.mesh, component.transform.localToWorldMatrix, motionVectorMat, 0, 0);
+
+        }
+        buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
+        ExecuteBuffer(context,camera);
+    }
+
+
+    void DrawCoherentNoise(ScriptableRenderContext context, Camera camera) {
+        if(coherentNoiseRT == null) {
+            // TODO: initailize to 1920x1080 because dynamic scale doesn't work
+            coherentNoiseRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
+            colorFormat: GraphicsFormat.R32G32B32A32_SInt,
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise");
+            // TODO: MIGHT NOT WORK HERE WE'LL SEE
+            buffer.SetGlobalTexture("_CoherentNoiseRT",coherentNoiseRT);
+        }
+        buffer.Blit(coherentNoiseRT,coherentNoiseRT,coherentNoiseMat);
+        buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
+        ExecuteBuffer(context,camera);
     }
 
 
@@ -161,7 +208,7 @@ public partial class CustomRenderPipeline : RenderPipeline
     {
         var drawingSettings = new DrawingSettings(legacyShaderTagIds[0], new SortingSettings(camera))
         {
-            overrideMaterial = errorMaterial
+            overrideMaterial = errorMat
         };
 
         for (int i = 1; i < legacyShaderTagIds.Length; i++)
@@ -176,7 +223,7 @@ public partial class CustomRenderPipeline : RenderPipeline
 
     static void ImageEffectBlit(CommandBuffer buf, Material material)
     {
-        buf.Blit(BuiltinRenderTextureType.CurrentActive, BuiltinRenderTextureType.CurrentActive, material);
+        buf.Blit(BuiltinRenderTextureType.CameraTarget, BuiltinRenderTextureType.CameraTarget, material);
     }
 
 }

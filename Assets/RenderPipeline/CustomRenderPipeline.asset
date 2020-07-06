@@ -10,6 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0921d1a4bb93ba24e83cf06146dd8da2, type: 3}
-  m_Name: RenderPipeline
+  m_Name: CustomRenderPipeline
   m_EditorClassIdentifier: 
-  testPost: {fileID: 0}
+  testPost: {fileID: -3033667219593020291, guid: 9585e8f0468cf9a4a96d861eb1284f05,
+    type: 3}

@@ -4,9 +4,9 @@ Shader "Hidden/MotionVectors"
 
     #include "UnityCG.cginc"
 
-    float4x4 _NonJitteredVP;
-    float4x4 _PreviousVP;
-    float4x4 _PreviousM;
+    uniform float4x4 _NonJitteredVP;
+    uniform float4x4 _PreviousVP;
+    uniform float4x4 _PreviousM;
 
     struct MotionVectorData
     {
@@ -43,7 +43,7 @@ Shader "Hidden/MotionVectors"
         vPos.y = 1.0 - vPos.y;
         vPosOld.y = 1.0 - vPosOld.y;
 #endif
-        return half4(vPos - vPosOld, 0, 1);
+        return half4(10*(vPos - vPosOld) + 0.5, 0, 1);
     }
 
     ENDCG
@@ -52,7 +52,7 @@ Shader "Hidden/MotionVectors"
     {
         Pass
         {
-            ZTest LEqual ZWrite Off
+            ZTest LEqual ZWrite On
             CGPROGRAM
             #pragma vertex VertMotionVectors
             #pragma fragment FragMotionVectors

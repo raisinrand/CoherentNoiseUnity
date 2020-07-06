@@ -3,9 +3,9 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 [ExecuteInEditMode]
-public class DrawMeshWithMotionVectors: MonoBehaviour
+public class MotionVectorData: MonoBehaviour
 {
-    public static List<DrawMeshWithMotionVectors> instances = new List<DrawMeshWithMotionVectors>();
+    public static List<MotionVectorData> instances = new List<MotionVectorData>();
 
     public Matrix4x4 previousModelMatrix;
 

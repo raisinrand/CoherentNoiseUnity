@@ -25,6 +25,9 @@ public class CameraMovement : MonoBehaviour
 	Quaternion originalRotation;
 
 
+    bool locked = true;
+
+
     public float speed;
     
     void Start() {
@@ -35,6 +38,22 @@ public class CameraMovement : MonoBehaviour
 
     void Update()
     {
+        bool switchLock = Input.GetKeyDown(KeyCode.Escape);
+        if(switchLock) {
+            locked = !locked;
+            if(locked) {
+                Cursor.visible = false;
+                Cursor.lockState = CursorLockMode.Locked;
+            } else {
+                Cursor.visible = true;
+                Cursor.lockState = CursorLockMode.None;
+            }
+        }
+
+        if(!locked) {
+            return;
+        }
+
         bool forward = Input.GetKey(KeyCode.W); 
         bool back = Input.GetKey(KeyCode.S); 
         bool left = Input.GetKey(KeyCode.A); 

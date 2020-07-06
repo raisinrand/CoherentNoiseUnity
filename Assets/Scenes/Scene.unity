@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 275394739}
   - component: {fileID: 275394738}
   - component: {fileID: 275394742}
+  - component: {fileID: 275394743}
   m_Layer: 0
   m_Name: Sphere
   m_TagString: Untagged
@@ -227,9 +228,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46e49934c5f623148b634a01fad843a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startOff: {x: -3, y: 0, z: 3}
-  endOff: {x: 3, y: 0, z: 3}
+  startOff: {x: -3, y: 3, z: 3}
+  endOff: {x: 3, y: -3, z: 3}
   time: 1.5
+--- !u!114 &275394743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 275394737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef020e90af6ad83489edb51c967fe8d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  previousModelMatrix:
+    e00: 10
+    e01: 0
+    e02: 0
+    e03: 20.38
+    e10: 0
+    e11: 10
+    e12: 0
+    e13: 7.17
+    e20: 0
+    e21: 0
+    e22: 10
+    e23: 5.67
+    e30: 0
+    e31: 0
+    e32: 0
+    e33: 1
 --- !u!21 &473518491
 Material:
   serializedVersion: 6
@@ -409,6 +439,7 @@ GameObject:
   - component: {fileID: 912722928}
   - component: {fileID: 912722927}
   - component: {fileID: 912722926}
+  - component: {fileID: 912722930}
   m_Layer: 0
   m_Name: Plane
   m_TagString: Untagged
@@ -491,6 +522,35 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &912722930
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 912722925}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef020e90af6ad83489edb51c967fe8d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  previousModelMatrix:
+    e00: 10
+    e01: 0
+    e02: 0
+    e03: 0
+    e10: 0
+    e11: 10
+    e12: 0
+    e13: 0
+    e20: 0
+    e21: 0
+    e22: 10
+    e23: 0
+    e30: 0
+    e31: 0
+    e32: 0
+    e33: 1
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0
@@ -594,6 +654,49 @@ MonoBehaviour:
   minimumY: -60
   maximumY: 60
   speed: 40
+--- !u!1 &1257067233
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1257067234}
+  - component: {fileID: 1257067235}
+  m_Layer: 0
+  m_Name: Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1257067234
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1257067233}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -9.6821575, y: 13.22925, z: 29.360037}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 6
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1257067235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1257067233}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a6ca32294c79e9478f5ebfd997044a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1743772696
 GameObject:
   m_ObjectHideFlags: 0
@@ -606,6 +709,7 @@ GameObject:
   - component: {fileID: 1743772700}
   - component: {fileID: 1743772699}
   - component: {fileID: 1743772697}
+  - component: {fileID: 1743772698}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -626,6 +730,35 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 100
+--- !u!114 &1743772698
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1743772696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef020e90af6ad83489edb51c967fe8d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  previousModelMatrix:
+    e00: 7
+    e01: 0
+    e02: 0
+    e03: -18.28
+    e10: 0
+    e11: 7
+    e12: 0
+    e13: 8.99
+    e20: 0
+    e21: 0
+    e22: 7
+    e23: 4.28
+    e30: 0
+    e31: 0
+    e32: 0
+    e33: 1
 --- !u!23 &1743772699
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -698,9 +831,9 @@ GameObject:
   - component: {fileID: 3248338880820012380}
   - component: {fileID: 2834078681341178255}
   - component: {fileID: 6806638069555682687}
-  - component: {fileID: 2534866581116264939}
   - component: {fileID: 2534866581116264941}
   - component: {fileID: 2534866581116264940}
+  - component: {fileID: 2534866581116264939}
   m_Layer: 0
   m_Name: teddy
   m_TagString: Untagged

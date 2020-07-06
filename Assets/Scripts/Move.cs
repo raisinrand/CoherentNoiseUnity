@@ -5,11 +5,11 @@ using UnityEngine;
 public class Move : MonoBehaviour
 {
     [SerializeField]
-    Vector3 startOff;
+    Vector3 startOff = Vector3.zero;
     [SerializeField]
-    Vector3 endOff;
+    Vector3 endOff = Vector3.zero;
     [SerializeField]
-    float time;
+    float time = 0;
 
 
     Vector3 start;
