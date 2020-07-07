@@ -48,6 +48,8 @@ Shader "Hidden/CoherentNoise"
 			sampler2D _MainTex;
 			sampler2D _MotionVectors;
 			sampler2D _CoherentNoisePrev;
+			sampler2D _MotionVectorsDepth;
+			sampler2D _MotionVectorsDepthPrev;
 			
 			float4 frag (v2f i) : SV_Target
 			{
@@ -59,10 +61,10 @@ Shader "Hidden/CoherentNoise"
 				// return float4(i.vertex.x/1920,i.vertex.y/1080,0,1);
 
 
-				return float4(prev,1);
+				// return float4(prev,1);
 				// return float4(vPos,0,1);
 
-				// return float4(lerp(noise,prev,_CNoiseAlpha),1);
+				return float4(lerp(noise,prev,_CNoiseAlpha),1);
 				// return float4(prev,1);
 			}
 			ENDCG

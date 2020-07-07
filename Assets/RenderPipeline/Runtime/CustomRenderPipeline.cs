@@ -8,22 +8,30 @@ public partial class CustomRenderPipeline : RenderPipeline
     public enum DisplayMode {
         Standard,
         ShowMotionVectors,
-        ShowNoiseTex
+        ShowNoiseTex,
+        ShowNoiseDiff
     }
 
     static Material errorMat;
     static Material motionVectorMat;
     Material coherentNoiseInitMat;
     Material coherentNoiseMat;
+    Material noiseDiffMat;
+    Material noiseShowMat;
 
     static RTHandle motionVectorsRT;
+    // two depth buffers for motionvecs because we need previous depth and easiest to just use motion vec depth
     static RTHandle motionVectorsDepthRT;
+    static RTHandle motionVectorsDepthPrevRT;
     static RTHandle coherentNoisePrevRT;
     static RTHandle coherentNoiseRT;
+    bool matsGenerated = false;
 
-    const float CNoiseAlpha = 0.5f;
+    const float CNoiseAlpha = 0.98f;
     readonly float CNoiseK = Mathf.Sqrt((1-CNoiseAlpha)/(1+CNoiseAlpha));
     const float CNoiseEpsilon = 0.005f;
+
+    const float noiseVizFactor = 1.5f;
     
     public static DisplayMode displayMode = DisplayMode.Standard;
 
@@ -76,8 +84,11 @@ public partial class CustomRenderPipeline : RenderPipeline
         // ImageEffectBlit(buffer, testPost);
         if(displayMode == DisplayMode.ShowMotionVectors) {
             buffer.Blit(motionVectorsRT,BuiltinRenderTextureType.CameraTarget);
+
         } else if(displayMode == DisplayMode.ShowNoiseTex) {
-            buffer.Blit(coherentNoiseRT.rt.depthBuffer,BuiltinRenderTextureType.CameraTarget);
+            buffer.Blit(coherentNoiseRT,BuiltinRenderTextureType.CameraTarget,noiseShowMat);
+        } else if(displayMode == DisplayMode.ShowNoiseDiff) {
+            ImageEffectBlit(buffer,noiseDiffMat);
         }
 
 
@@ -88,14 +99,16 @@ public partial class CustomRenderPipeline : RenderPipeline
     }
 
     void GenMaterials() {
-		if (errorMat == null)
-			errorMat = new Material(Shader.Find("Hidden/InternalErrorShader"));
-		if (motionVectorMat == null)
-			motionVectorMat = new Material(Shader.Find("Hidden/MotionVectors"));
-        if (coherentNoiseMat == null)
-            coherentNoiseMat = new Material(Shader.Find("Hidden/CoherentNoise"));
-        if (coherentNoiseInitMat == null)
-            coherentNoiseInitMat = new Material(Shader.Find("Hidden/CoherentNoiseInit"));
+		if (matsGenerated) return;
+        
+        errorMat = new Material(Shader.Find("Hidden/InternalErrorShader"));
+        motionVectorMat = new Material(Shader.Find("Hidden/MotionVectors"));
+        coherentNoiseMat = new Material(Shader.Find("Hidden/CoherentNoise"));
+        coherentNoiseInitMat = new Material(Shader.Find("Hidden/CoherentNoiseInit"));
+        noiseDiffMat = new Material(Shader.Find("Hidden/NoiseDiff"));
+        noiseShowMat = new Material(Shader.Find("Hidden/NoiseShow"));
+
+        matsGenerated = true;
     }
 
     void Setup(ScriptableRenderContext context, Camera camera)
@@ -165,7 +178,19 @@ public partial class CustomRenderPipeline : RenderPipeline
             motionVectorsDepthRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.None, depthBufferBits: DepthBits.Depth24,
             dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "MotionVectorsDepth");
+
+            motionVectorsDepthPrevRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
+            colorFormat: GraphicsFormat.None, depthBufferBits: DepthBits.Depth24,
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "MotionVectorsDepthPrev");
         }
+
+        // swap depth
+        var temp = motionVectorsDepthPrevRT;
+        motionVectorsDepthPrevRT = motionVectorsDepthRT;
+        motionVectorsDepthRT = temp;
+        buffer.SetGlobalTexture("_MotionVectorsDepth",motionVectorsDepthRT);
+        buffer.SetGlobalTexture("_MotionVectorsDepthPrev",motionVectorsDepthPrevRT);
+
 
         buffer.SetRenderTarget(motionVectorsRT,motionVectorsDepthRT);
         buffer.ClearRenderTarget(true,true,Color.black);
@@ -177,9 +202,6 @@ public partial class CustomRenderPipeline : RenderPipeline
             var materialProps = new MaterialPropertyBlock();
             materialProps.SetMatrix("_PreviousM",component.previousModelMatrix);
             buffer.DrawMesh(component.mesh, component.transform.localToWorldMatrix, motionVectorMat, 0, 0, materialProps);
-            // buffer.SetGlobalMatrix("_PreviousM", component.previousModelMatrix);
-            // buffer.DrawMesh(component.mesh, component.transform.localToWorldMatrix, motionVectorMat, 0, 0);
-
         }
         buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
         ExecuteBuffer(context,camera);
@@ -191,10 +213,10 @@ public partial class CustomRenderPipeline : RenderPipeline
             // TODO: initailizing to 1920x1080 because dynamic scale doesn't work
             coherentNoiseRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.R8G8B8A8_UNorm,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise");
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise1");
             coherentNoisePrevRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.R8G8B8A8_UNorm,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise");
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise2");
 
             // initialize coherent noise
             buffer.SetGlobalFloat("_CNoiseAlpha",CNoiseAlpha);
