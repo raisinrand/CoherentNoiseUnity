@@ -52,7 +52,6 @@ Shader "Hidden/MotionVectors"
     {
         Pass
         {
-            ZTest LEqual ZWrite On
             CGPROGRAM
             #pragma vertex VertMotionVectors
             #pragma fragment FragMotionVectors
