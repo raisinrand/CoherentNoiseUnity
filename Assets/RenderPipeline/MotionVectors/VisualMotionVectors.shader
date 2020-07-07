@@ -1,4 +1,4 @@
-Shader "Hidden/MotionVectors"
+Shader "Hidden/VisualMotionVectors"
 {
     CGINCLUDE
 
@@ -39,11 +39,11 @@ Shader "Hidden/MotionVectors"
         float2 vPos = (hPos.xy + 1.0f) / 2.0f;
         float2 vPosOld = (hPosOld.xy + 1.0f) / 2.0f;
 
-// #if UNITY_UV_STARTS_AT_TOP
-        // vPos.y = 1.0 - vPos.y;
-        // vPosOld.y = 1.0 - vPosOld.y;
-// #endif
-        return float4(vPos - vPosOld, 0, 1);
+#if UNITY_UV_STARTS_AT_TOP
+        vPos.y = 1.0 - vPos.y;
+        vPosOld.y = 1.0 - vPosOld.y;
+#endif
+        return half4(50*(vPos - vPosOld) + 0.5, 0, 1);
     }
 
     ENDCG

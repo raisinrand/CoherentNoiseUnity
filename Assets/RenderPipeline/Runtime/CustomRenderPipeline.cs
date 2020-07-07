@@ -11,21 +11,24 @@ public partial class CustomRenderPipeline : RenderPipeline
         ShowNoiseTex
     }
 
-
-    static Material testPost;
     static Material errorMat;
     static Material motionVectorMat;
-    static Material coherentNoiseMat;
+    Material coherentNoiseInitMat;
+    Material coherentNoiseMat;
 
     static RTHandle motionVectorsRT;
     static RTHandle motionVectorsDepthRT;
+    static RTHandle coherentNoisePrevRT;
     static RTHandle coherentNoiseRT;
+
+    const float CNoiseAlpha = 0.5f;
+    readonly float CNoiseK = Mathf.Sqrt((1-CNoiseAlpha)/(1+CNoiseAlpha));
+    const float CNoiseEpsilon = 0.005f;
     
     public static DisplayMode displayMode = DisplayMode.Standard;
 
-    public CustomRenderPipeline(Material testPost)
+    public CustomRenderPipeline()
     {
-        CustomRenderPipeline.testPost = testPost;
     }
 
     CommandBuffer buffer = new CommandBuffer { name = "Main Render" };
@@ -41,10 +44,6 @@ public partial class CustomRenderPipeline : RenderPipeline
         new ShaderTagId("VertexLMRGBM"),
         new ShaderTagId("VertexLM")
     };
-
-
-    public CustomRenderPipeline() {
-    }
 
     protected override void Render(ScriptableRenderContext context, Camera[] cameras)
     {
@@ -95,6 +94,8 @@ public partial class CustomRenderPipeline : RenderPipeline
 			motionVectorMat = new Material(Shader.Find("Hidden/MotionVectors"));
         if (coherentNoiseMat == null)
             coherentNoiseMat = new Material(Shader.Find("Hidden/CoherentNoise"));
+        if (coherentNoiseInitMat == null)
+            coherentNoiseInitMat = new Material(Shader.Find("Hidden/CoherentNoiseInit"));
     }
 
     void Setup(ScriptableRenderContext context, Camera camera)
@@ -153,15 +154,14 @@ public partial class CustomRenderPipeline : RenderPipeline
     void DrawMotionVectors(ScriptableRenderContext context, Camera camera)
     {
         if(motionVectorsRT == null) {
-            // TODO: initailize to 1920x1080 because dynamic scale doesn't work
+            // TODO: initailizing to 1920x1080 because dynamic scale doesn't work
             motionVectorsRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
-            colorFormat: GraphicsFormat.R16G16_SFloat, depthBufferBits: DepthBits.None,
+            colorFormat: GraphicsFormat.R32G32_SFloat, depthBufferBits: DepthBits.None,
             dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "MotionVectors");
-            // TODO: MIGHT NOT WORK HERE WE'LL SEE
-            buffer.SetGlobalTexture("_MotionVectorsRT",motionVectorsRT);
+            buffer.SetGlobalTexture("_MotionVectors",motionVectorsRT);
         }
         if(motionVectorsDepthRT == null) {
-            // TODO: initailize to 1920x1080 because dynamic scale doesn't work
+            // TODO: initailizing to 1920x1080 because dynamic scale doesn't work
             motionVectorsDepthRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.None, depthBufferBits: DepthBits.Depth24,
             dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "MotionVectorsDepth");
@@ -174,8 +174,11 @@ public partial class CustomRenderPipeline : RenderPipeline
         buffer.SetGlobalMatrix("_NonJitteredVP", CameraMatrixProvider.GetVPMatrix(camera));
         foreach (var component in MotionVectorData.instances)
         {
-            buffer.SetGlobalMatrix("_PreviousM", component.previousModelMatrix);
-            buffer.DrawMesh(component.mesh, component.transform.localToWorldMatrix, motionVectorMat, 0, 0);
+            var materialProps = new MaterialPropertyBlock();
+            materialProps.SetMatrix("_PreviousM",component.previousModelMatrix);
+            buffer.DrawMesh(component.mesh, component.transform.localToWorldMatrix, motionVectorMat, 0, 0, materialProps);
+            // buffer.SetGlobalMatrix("_PreviousM", component.previousModelMatrix);
+            // buffer.DrawMesh(component.mesh, component.transform.localToWorldMatrix, motionVectorMat, 0, 0);
 
         }
         buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
@@ -185,14 +188,30 @@ public partial class CustomRenderPipeline : RenderPipeline
 
     void DrawCoherentNoise(ScriptableRenderContext context, Camera camera) {
         if(coherentNoiseRT == null) {
-            // TODO: initailize to 1920x1080 because dynamic scale doesn't work
+            // TODO: initailizing to 1920x1080 because dynamic scale doesn't work
             coherentNoiseRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.R8G8B8A8_UNorm,
             dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise");
-            // TODO: MIGHT NOT WORK HERE WE'LL SEE
-            buffer.SetGlobalTexture("_CoherentNoiseRT",coherentNoiseRT);
+            coherentNoisePrevRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
+            colorFormat: GraphicsFormat.R8G8B8A8_UNorm,
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise");
+
+            // initialize coherent noise
+            buffer.SetGlobalFloat("_CNoiseAlpha",CNoiseAlpha);
+            buffer.SetGlobalFloat("_CNoiseK",CNoiseK);
+            buffer.SetGlobalFloat("_CNoiseEpsilon",CNoiseEpsilon);
+            buffer.Blit(coherentNoiseRT,coherentNoiseRT,coherentNoiseInitMat);
+            Debug.Log("init");
         }
+        // swap
+        var temp = coherentNoisePrevRT;
+        coherentNoisePrevRT = coherentNoiseRT;
+        coherentNoiseRT = temp;
+        buffer.SetGlobalTexture("_CoherentNoise",coherentNoiseRT);
+        buffer.SetGlobalTexture("_CoherentNoisePrev",coherentNoisePrevRT);
+
         buffer.Blit(coherentNoiseRT,coherentNoiseRT,coherentNoiseMat);
+
         buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
         ExecuteBuffer(context,camera);
     }

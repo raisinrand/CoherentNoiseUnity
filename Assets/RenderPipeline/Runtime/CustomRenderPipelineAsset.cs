@@ -4,10 +4,9 @@ using UnityEngine.Rendering;
 [CreateAssetMenu(menuName = "Rendering/Custom Render Pipeline")]
 public class CustomRenderPipelineAsset : RenderPipelineAsset
 {
-    public Material testPost;
     protected override RenderPipeline CreatePipeline()
     {
-        return new CustomRenderPipeline(testPost);
+        return new CustomRenderPipeline();
     }
     
 }

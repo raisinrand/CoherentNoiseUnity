@@ -1,9 +1,8 @@
-// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
-
 Shader "Hidden/CoherentNoise"
 {
 	Properties
 	{
+		_MainTex ("Texture", 2D) = "white" {}
 	}
 	SubShader
 	{
@@ -17,6 +16,7 @@ Shader "Hidden/CoherentNoise"
 			#pragma fragment frag
 			
 			#include "UnityCG.cginc"
+			#include "CoherentNoiseIncl.cginc"
 
 			struct appdata
 			{
@@ -41,27 +41,29 @@ Shader "Hidden/CoherentNoise"
 				return o;
 			}
 			
-			// src : https://www.ronja-tutorials.com/2018/09/02/white-noise.html
-			float rand3dTo1d(float3 value, float3 dotDir = float3(12.9898, 78.233, 37.719)){
-				//make value smaller to avoid artefacts
-				float3 smallValue = sin(value);
-				//get scalar value from 3d vector
-				float random = dot(smallValue, dotDir);
-				//make value more random by making it bigger and then taking teh factional part
-				random = frac(sin(random) * 143758.5453);
-				return random;
-			}
-			float3 rand3dTo3d(float3 value){
-				return float3(
-					rand3dTo1d(value, float3(12.989, 78.233, 37.719)),
-					rand3dTo1d(value, float3(39.346, 11.135, 83.155)),
-					rand3dTo1d(value, float3(73.156, 52.235, 09.151))
-				);
-			}
+			float _CNoiseAlpha;
+			float _CNoiseK;
+			float _CNoiseEpsilon;
+
+			sampler2D _MainTex;
+			sampler2D _MotionVectors;
+			sampler2D _CoherentNoisePrev;
 			
 			float4 frag (v2f i) : SV_Target
 			{
-				return float4(rand3dTo3d(float3(i.uv.x,i.uv.y,_Time.x)).xyz,1);
+				float3 noise = whiteNoise(float3(i.uv.x,i.uv.y,_Time.x));
+				float2 motion = tex2D(_MotionVectors, i.uv);
+				float3 prev = tex2D(_CoherentNoisePrev, i.uv - motion);
+				// return float4(prev,1);
+				
+				// return float4(i.vertex.x/1920,i.vertex.y/1080,0,1);
+
+
+				return float4(prev,1);
+				// return float4(vPos,0,1);
+
+				// return float4(lerp(noise,prev,_CNoiseAlpha),1);
+				// return float4(prev,1);
 			}
 			ENDCG
 		}

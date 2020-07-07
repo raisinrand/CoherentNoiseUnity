@@ -8,7 +8,7 @@ MonoImporter:
   - _material: {instanceID: 0}
   - _motionVectorShader: {fileID: 4800000, guid: 86cd3f6c489d0dd439aa393a35145e9c,
       type: 3}
-  executionOrder: 0
+  executionOrder: -500
   icon: {instanceID: 0}
   userData: 
   assetBundleName: 
