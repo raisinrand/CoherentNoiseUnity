@@ -1,4 +1,4 @@
-Shader "Hidden/CoherentNoiseInit"
+Shader "Hidden/MotionVecsCopyDepth"
 {
 	Properties
 	{
@@ -14,9 +14,7 @@ Shader "Hidden/CoherentNoiseInit"
 			#pragma vertex vert
 			#pragma fragment frag
 			
-		
-            #include "UnityCG.cginc"
-			#include "CoherentNoiseIncl.cginc"
+			#include "UnityCG.cginc"
 
 			struct appdata
 			{
@@ -30,8 +28,7 @@ Shader "Hidden/CoherentNoiseInit"
 				float4 vertex : SV_POSITION;
 			};
 
-
-			float _CNoiseK;
+            sampler2D _MotionVectorsDepth;
 
 			v2f vert (appdata v)
 			{
@@ -42,7 +39,8 @@ Shader "Hidden/CoherentNoiseInit"
 			}
 			float4 frag (v2f i) : SV_Target
 			{
-				return float4(_CNoiseK*whiteNoise(float3(i.uv.x,i.uv.y,_Time.x)),1);
+				// return float4(1,1,1,1);
+				return tex2D(_MotionVectorsDepth,i.uv);
 			}
 			ENDCG
 		}

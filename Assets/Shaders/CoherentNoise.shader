@@ -53,19 +53,27 @@ Shader "Hidden/CoherentNoise"
 			
 			float4 frag (v2f i) : SV_Target
 			{
-				float3 noise = whiteNoise(float3(i.uv.x,i.uv.y,_Time.x));
+				float3 w = whiteNoise(float3(i.uv.x,i.uv.y,_Time.x));
 				float2 motion = tex2D(_MotionVectors, i.uv);
-				float3 prev = tex2D(_CoherentNoisePrev, i.uv - motion);
-				// return float4(prev,1);
-				
-				// return float4(i.vertex.x/1920,i.vertex.y/1080,0,1);
+				float2 prevUV = i.uv-motion;
+				float3 prev = tex2D(_CoherentNoisePrev, prevUV);
+				// return float4(w,1);
 
-
+				// NAIVE ADVECTION
 				// return float4(prev,1);
-				// return float4(vPos,0,1);
 
-				return float4(lerp(noise,prev,_CNoiseAlpha),1);
-				// return float4(prev,1);
+				// COHERENT NOISE
+				float depth = tex2D(_MotionVectorsDepth,prevUV);
+				float depthPrev = tex2D(_MotionVectorsDepthPrev,prevUV);
+				// return 1000*abs(depth-depthPrev);
+				float3 res = 0;
+				bool disoccluded = depthPrev - depth > _CNoiseEpsilon;
+				if(disoccluded) 
+					res = _CNoiseK*w;
+				else {
+					res = _CNoiseAlpha*prev + (1-_CNoiseAlpha)*w;
+				} 
+				return float4(res,1);
 			}
 			ENDCG
 		}

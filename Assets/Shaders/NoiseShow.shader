@@ -38,10 +38,11 @@ Shader "Hidden/NoiseShow"
 			}
 			
 			sampler2D _MainTex;
+			float _CNoiseK;
 
 			float4 frag (v2f i) : SV_Target
 			{
-				return pow(tex2D(_MainTex, i.uv)*1.2,4);
+				return abs(tex2D(_MainTex, i.uv)/_CNoiseK);
 			}
 			ENDCG
 		}

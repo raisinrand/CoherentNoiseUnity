@@ -18,6 +18,7 @@ public partial class CustomRenderPipeline : RenderPipeline
     Material coherentNoiseMat;
     Material noiseDiffMat;
     Material noiseShowMat;
+    Material motionVecsCopyDepthMat;
 
     static RTHandle motionVectorsRT;
     // two depth buffers for motionvecs because we need previous depth and easiest to just use motion vec depth
@@ -28,7 +29,7 @@ public partial class CustomRenderPipeline : RenderPipeline
     bool matsGenerated = false;
 
     const float CNoiseAlpha = 0.98f;
-    readonly float CNoiseK = Mathf.Sqrt((1-CNoiseAlpha)/(1+CNoiseAlpha));
+    readonly float CNoiseK = Mathf.Sqrt((1f-CNoiseAlpha)/(1f+CNoiseAlpha));
     const float CNoiseEpsilon = 0.005f;
 
     const float noiseVizFactor = 1.5f;
@@ -107,8 +108,12 @@ public partial class CustomRenderPipeline : RenderPipeline
         coherentNoiseInitMat = new Material(Shader.Find("Hidden/CoherentNoiseInit"));
         noiseDiffMat = new Material(Shader.Find("Hidden/NoiseDiff"));
         noiseShowMat = new Material(Shader.Find("Hidden/NoiseShow"));
+        motionVecsCopyDepthMat = new Material(Shader.Find("Hidden/MotionVecsCopyDepth"));
 
         matsGenerated = true;
+
+        
+        Debug.Log($"init: k={CNoiseK}");
     }
 
     void Setup(ScriptableRenderContext context, Camera camera)
@@ -176,24 +181,24 @@ public partial class CustomRenderPipeline : RenderPipeline
         if(motionVectorsDepthRT == null) {
             // TODO: initailizing to 1920x1080 because dynamic scale doesn't work
             motionVectorsDepthRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
-            colorFormat: GraphicsFormat.None, depthBufferBits: DepthBits.Depth24,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "MotionVectorsDepth");
+            colorFormat: GraphicsFormat.None, depthBufferBits: DepthBits.Depth32,
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "MotionVectorsDepth", filterMode: FilterMode.Bilinear);
 
             motionVectorsDepthPrevRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
-            colorFormat: GraphicsFormat.None, depthBufferBits: DepthBits.Depth24,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "MotionVectorsDepthPrev");
+            colorFormat: GraphicsFormat.R32_SFloat, depthBufferBits: DepthBits.None,
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "MotionVectorsDepthPrev", filterMode: FilterMode.Bilinear);
+
+            buffer.SetGlobalTexture("_MotionVectorsDepth",motionVectorsDepthRT);
+            buffer.SetGlobalTexture("_MotionVectorsDepthPrev",motionVectorsDepthPrevRT);
         }
 
         // swap depth
-        var temp = motionVectorsDepthPrevRT;
-        motionVectorsDepthPrevRT = motionVectorsDepthRT;
-        motionVectorsDepthRT = temp;
-        buffer.SetGlobalTexture("_MotionVectorsDepth",motionVectorsDepthRT);
-        buffer.SetGlobalTexture("_MotionVectorsDepthPrev",motionVectorsDepthPrevRT);
-
-
+        // var temp = motionVectorsDepthPrevRT;
+        // motionVectorsDepthPrevRT = motionVectorsDepthRT;
+        // motionVectorsDepthRT = temp;
+        buffer.Blit(motionVectorsDepthPrevRT,motionVectorsDepthPrevRT,motionVecsCopyDepthMat);
         buffer.SetRenderTarget(motionVectorsRT,motionVectorsDepthRT);
-        buffer.ClearRenderTarget(true,true,Color.black);
+        buffer.ClearRenderTarget(true,true,Color.clear);
 
         buffer.SetGlobalMatrix("_PreviousVP", CameraMatrixProvider.GetPreviousVPMatrix(camera));
         buffer.SetGlobalMatrix("_NonJitteredVP", CameraMatrixProvider.GetVPMatrix(camera));
@@ -212,18 +217,17 @@ public partial class CustomRenderPipeline : RenderPipeline
         if(coherentNoiseRT == null) {
             // TODO: initailizing to 1920x1080 because dynamic scale doesn't work
             coherentNoiseRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
-            colorFormat: GraphicsFormat.R8G8B8A8_UNorm,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise1");
+            colorFormat: GraphicsFormat.R32G32B32A32_SFloat,
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise1",filterMode: FilterMode.Point);
             coherentNoisePrevRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
-            colorFormat: GraphicsFormat.R8G8B8A8_UNorm,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise2");
+            colorFormat: GraphicsFormat.R32G32B32A32_SFloat,
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise2",filterMode: FilterMode.Point);
 
             // initialize coherent noise
             buffer.SetGlobalFloat("_CNoiseAlpha",CNoiseAlpha);
             buffer.SetGlobalFloat("_CNoiseK",CNoiseK);
             buffer.SetGlobalFloat("_CNoiseEpsilon",CNoiseEpsilon);
             buffer.Blit(coherentNoiseRT,coherentNoiseRT,coherentNoiseInitMat);
-            Debug.Log("init");
         }
         // swap
         var temp = coherentNoisePrevRT;
