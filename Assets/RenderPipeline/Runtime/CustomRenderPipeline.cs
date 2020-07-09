@@ -9,8 +9,11 @@ public partial class CustomRenderPipeline : RenderPipeline
         Standard,
         ShowMotionVectors,
         ShowNoiseTex,
-        ShowNoiseDiff
+        ShowNoiseDiff,
+        ShowOutline
     }
+
+    static int effectTempRTID = Shader.PropertyToID("_EffectTemp");
 
     static Material errorMat;
     static Material motionVectorMat;
@@ -19,6 +22,7 @@ public partial class CustomRenderPipeline : RenderPipeline
     Material noiseDiffMat;
     Material noiseShowMat;
     Material motionVecsCopyDepthMat;
+    Material outlineMat;
 
     static RTHandle motionVectorsRT;
     // two depth buffers for motionvecs because we need previous depth and easiest to just use motion vec depth
@@ -28,9 +32,9 @@ public partial class CustomRenderPipeline : RenderPipeline
     static RTHandle coherentNoiseRT;
     bool matsGenerated = false;
 
-    const float CNoiseAlpha = 0.98f;
+    const float CNoiseAlpha = 0.99f;
     readonly float CNoiseK = Mathf.Sqrt((1f-CNoiseAlpha)/(1f+CNoiseAlpha));
-    const float CNoiseEpsilon = 0.005f;
+    const float CNoiseEpsilon = 0.0001f;
 
     const float noiseVizFactor = 1.5f;
     
@@ -80,16 +84,20 @@ public partial class CustomRenderPipeline : RenderPipeline
         DrawCoherentNoise(context,camera);
         DrawVisibleGeometry(context, camera);
         DrawUnsupportedShaders(context, camera);
-
         // POST
         // ImageEffectBlit(buffer, testPost);
         if(displayMode == DisplayMode.ShowMotionVectors) {
             buffer.Blit(motionVectorsRT,BuiltinRenderTextureType.CameraTarget);
-
         } else if(displayMode == DisplayMode.ShowNoiseTex) {
             buffer.Blit(coherentNoiseRT,BuiltinRenderTextureType.CameraTarget,noiseShowMat);
         } else if(displayMode == DisplayMode.ShowNoiseDiff) {
             ImageEffectBlit(buffer,noiseDiffMat);
+        } else if (displayMode == DisplayMode.ShowOutline) {
+            buffer.GetTemporaryRT(effectTempRTID,camera.pixelWidth, camera.pixelHeight);
+            buffer.Blit(BuiltinRenderTextureType.CameraTarget,effectTempRTID);
+            buffer.SetGlobalTexture("_Screen",effectTempRTID);
+            buffer.Blit(effectTempRTID,BuiltinRenderTextureType.CameraTarget,outlineMat);
+            buffer.ReleaseTemporaryRT(effectTempRTID);
         }
 
 
@@ -109,6 +117,7 @@ public partial class CustomRenderPipeline : RenderPipeline
         noiseDiffMat = new Material(Shader.Find("Hidden/NoiseDiff"));
         noiseShowMat = new Material(Shader.Find("Hidden/NoiseShow"));
         motionVecsCopyDepthMat = new Material(Shader.Find("Hidden/MotionVecsCopyDepth"));
+        outlineMat = new Material(Shader.Find("Hidden/BoundaryOutline"));
 
         matsGenerated = true;
 
@@ -193,9 +202,6 @@ public partial class CustomRenderPipeline : RenderPipeline
         }
 
         // swap depth
-        // var temp = motionVectorsDepthPrevRT;
-        // motionVectorsDepthPrevRT = motionVectorsDepthRT;
-        // motionVectorsDepthRT = temp;
         buffer.Blit(motionVectorsDepthPrevRT,motionVectorsDepthPrevRT,motionVecsCopyDepthMat);
         buffer.SetRenderTarget(motionVectorsRT,motionVectorsDepthRT);
         buffer.ClearRenderTarget(true,true,Color.clear);

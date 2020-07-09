@@ -63,8 +63,8 @@ Shader "Hidden/CoherentNoise"
 				// return float4(prev,1);
 
 				// COHERENT NOISE
-				float depth = tex2D(_MotionVectorsDepth,prevUV);
-				float depthPrev = tex2D(_MotionVectorsDepthPrev,prevUV);
+				float depth = tex2D(_MotionVectorsDepth,i.uv);
+				float depthPrev = tex2D(_MotionVectorsDepthPrev,i.uv);
 				// return 1000*abs(depth-depthPrev);
 				float3 res = 0;
 				bool disoccluded = depthPrev - depth > _CNoiseEpsilon;

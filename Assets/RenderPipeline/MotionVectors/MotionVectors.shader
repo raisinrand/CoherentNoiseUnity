@@ -44,6 +44,8 @@ Shader "Hidden/MotionVectors"
         // vPosOld.y = 1.0 - vPosOld.y;
 // #endif
         return float4(vPos - vPosOld, 0, 1);
+        // for visualization
+        // return float4(0.5 + (10*(vPos - vPosOld)), 0, 1);
     }
 
     ENDCG
