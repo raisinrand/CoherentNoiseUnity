@@ -13,7 +13,6 @@ public partial class CustomRenderPipeline : RenderPipeline
         ShowOutline
     }
 
-    static int effectTempRTID = Shader.PropertyToID("_EffectTemp");
 
     static Material errorMat;
     static Material motionVectorMat;
@@ -23,6 +22,7 @@ public partial class CustomRenderPipeline : RenderPipeline
     Material noiseShowMat;
     Material motionVecsCopyDepthMat;
     Material outlineMat;
+    Material blurMat;
 
     static RTHandle motionVectorsRT;
     // two depth buffers for motionvecs because we need previous depth and easiest to just use motion vec depth
@@ -30,9 +30,13 @@ public partial class CustomRenderPipeline : RenderPipeline
     static RTHandle motionVectorsDepthPrevRT;
     static RTHandle coherentNoisePrevRT;
     static RTHandle coherentNoiseRT;
+    static int effectTempRTID = Shader.PropertyToID("_EffectTemp");
+    static int smoothCNoiseRTID = Shader.PropertyToID("_SmoothCNoise");
     bool matsGenerated = false;
 
-    const float CNoiseAlpha = 0.99f;
+    public static bool pauseNoise;
+
+    const float CNoiseAlpha = 0.998f;
     readonly float CNoiseK = Mathf.Sqrt((1f-CNoiseAlpha)/(1f+CNoiseAlpha));
     const float CNoiseEpsilon = 0.0001f;
 
@@ -93,11 +97,14 @@ public partial class CustomRenderPipeline : RenderPipeline
         } else if(displayMode == DisplayMode.ShowNoiseDiff) {
             ImageEffectBlit(buffer,noiseDiffMat);
         } else if (displayMode == DisplayMode.ShowOutline) {
+            // buffer.Blit(coherentNoiseRT,coherentNoiseRT,blurMat);
+            // ExecuteBuffer(context,camera);
+            // TODO: copying to temp rts because blit not setting maintex here for some reason
             buffer.GetTemporaryRT(effectTempRTID,camera.pixelWidth, camera.pixelHeight);
             buffer.Blit(BuiltinRenderTextureType.CameraTarget,effectTempRTID);
-            buffer.SetGlobalTexture("_Screen",effectTempRTID);
             buffer.Blit(effectTempRTID,BuiltinRenderTextureType.CameraTarget,outlineMat);
             buffer.ReleaseTemporaryRT(effectTempRTID);
+            ExecuteBuffer(context,camera);
         }
 
 
@@ -118,6 +125,7 @@ public partial class CustomRenderPipeline : RenderPipeline
         noiseShowMat = new Material(Shader.Find("Hidden/NoiseShow"));
         motionVecsCopyDepthMat = new Material(Shader.Find("Hidden/MotionVecsCopyDepth"));
         outlineMat = new Material(Shader.Find("Hidden/BoundaryOutline"));
+        blurMat = new Material(Shader.Find("Hidden/GaussianBlur"));
 
         matsGenerated = true;
 
@@ -241,6 +249,14 @@ public partial class CustomRenderPipeline : RenderPipeline
         coherentNoiseRT = temp;
         buffer.SetGlobalTexture("_CoherentNoise",coherentNoiseRT);
         buffer.SetGlobalTexture("_CoherentNoisePrev",coherentNoisePrevRT);
+
+
+        if(pauseNoise){
+            buffer.Blit(coherentNoiseRT,coherentNoiseRT,coherentNoiseInitMat);
+            buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
+            ExecuteBuffer(context,camera);
+            return;
+        }
 
         buffer.Blit(coherentNoiseRT,coherentNoiseRT,coherentNoiseMat);
 

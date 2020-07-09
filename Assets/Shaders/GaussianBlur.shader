@@ -1,8 +1,5 @@
-Shader "Hidden/CoherentNoiseInit"
+Shader "Hidden/GaussianBlur"
 {
-	Properties
-	{
-	}
 	SubShader
 	{
 		// No culling or depth
@@ -14,9 +11,8 @@ Shader "Hidden/CoherentNoiseInit"
 			#pragma vertex vert
 			#pragma fragment frag
 			
-		
-            #include "UnityCG.cginc"
-			#include "CoherentNoiseIncl.cginc"
+			#include "UnityCG.cginc"
+			#include "GaussianBlur.cginc"
 
 			struct appdata
 			{
@@ -30,9 +26,6 @@ Shader "Hidden/CoherentNoiseInit"
 				float4 vertex : SV_POSITION;
 			};
 
-
-			float _CNoiseK;
-
 			v2f vert (appdata v)
 			{
 				v2f o;
@@ -40,9 +33,14 @@ Shader "Hidden/CoherentNoiseInit"
 				o.uv = v.uv; 
 				return o;
 			}
+
+			// TODO: using coherent noise global bc maintex issue
+			sampler2D _CoherentNoise;
+			
 			float4 frag (v2f i) : SV_Target
 			{
-				return float4(_CNoiseK*whiteNoise(float3(i.uv.x,i.uv.y,1)),1);
+				// return 10*tex2D(_CoherentNoise,i.uv);
+                return abs(blur(_CoherentNoise,i.uv,0.0005));
 			}
 			ENDCG
 		}

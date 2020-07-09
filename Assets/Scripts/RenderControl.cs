@@ -12,6 +12,7 @@ public class RenderControl : MonoBehaviour
         if(Input.GetKeyDown(KeyCode.N)) Toggle(DisplayMode.ShowNoiseTex);
         if(Input.GetKeyDown(KeyCode.B)) Toggle(DisplayMode.ShowNoiseDiff);
         if(Input.GetKeyDown(KeyCode.V)) Toggle(DisplayMode.ShowOutline);
+        if(Input.GetKeyDown(KeyCode.P)) CustomRenderPipeline.pauseNoise = !CustomRenderPipeline.pauseNoise;
     }
     void Toggle(DisplayMode displayMode) {
         if(CustomRenderPipeline.displayMode == displayMode)
