@@ -39,7 +39,6 @@ Shader "Hidden/GaussianBlur"
 			
 			float4 frag (v2f i) : SV_Target
 			{
-				// return 10*tex2D(_CoherentNoise,i.uv);
                 return abs(blur(_CoherentNoise,i.uv,0.0005));
 			}
 			ENDCG

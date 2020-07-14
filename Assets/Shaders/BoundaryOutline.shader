@@ -41,6 +41,7 @@ Shader "Hidden/BoundaryOutline"
 			sampler2D _EffectTemp;
 			sampler2D _MotionVectorsDepth;
 			sampler2D _CoherentNoise;
+            float _CNoiseK;
 
             float2 flipUV(float2 uv) {
                 return float2(uv.x,1-uv.y);
@@ -49,7 +50,7 @@ Shader "Hidden/BoundaryOutline"
 			float4 frag (v2f i) : SV_Target
 			{
                 // TODO: SHOULD BE IN PIXEL SPACE, NOT UV SPACE
-                float dist = 0.001f;
+                float dist = 0.002f;
 
                 float2 uv1 = i.uv;
                 float2 uv2 = uv1 + float2(-dist,0);
@@ -65,7 +66,7 @@ Shader "Hidden/BoundaryOutline"
 
                 // pick nearest for depth
                 float2 noiseUV = uv1;
-                float d = min(d1,min(d2,min(d3,min(d4,d5))));
+                float d = max(d1,max(d2,max(d3,max(d4,d5))));
                 // return d;
                 if( d == d2) {
                     noiseUV = uv2;
@@ -80,18 +81,16 @@ Shader "Hidden/BoundaryOutline"
                     noiseUV = uv5;
                 }
 
-                float3 n1 = blur(_CoherentNoise,noiseUV,0.01f);
-                // return n1;
-                // return float4(100*n1,1);
-                // float2 delta = n1*dist*2000;
-                float2 delta = 0;
+                float3 n = blur(_CoherentNoise,noiseUV,(1.0/1920.0));
+                // return float4(50*n,1);
+                // return 20*d;
+                // return s2u(10*float4(n,1)/_CNoiseK);
+                float2 delta  = n*dist*60;
                 uv1 += delta;
                 uv2 += delta;
                 uv3 += delta;
                 uv4 += delta;
                 uv5 += delta;
-
-                
 
                 float3 s1 = tex2D(_EffectTemp,flipUV(uv1));
                 float3 s2 = tex2D(_EffectTemp,flipUV(uv2));
@@ -99,16 +98,15 @@ Shader "Hidden/BoundaryOutline"
                 float3 s4 = tex2D(_EffectTemp,flipUV(uv4));
                 float3 s5 = tex2D(_EffectTemp,flipUV(uv5));
 
-
-                // return float4(1,0,0,0);
-                // return float4(s1,1);
-                // return float4(,1);
-
                 float3 res = 0.6;
                 if( length((s2+s3+s4+s5)*0.25 - s1) > 0) {
                     res = 0;
                 }
 				return float4(res,1);
+
+                return float4(lerp(s1,100*n,0.5),1);
+
+                // return float4(max(s1,max(s2,max(s3,max(s4,s5)))),1);
 			}
 			ENDCG
 		}

@@ -36,9 +36,9 @@ public partial class CustomRenderPipeline : RenderPipeline
 
     public static bool pauseNoise;
 
-    const float CNoiseAlpha = 0.998f;
+    const float CNoiseAlpha = 0.985f;
     readonly float CNoiseK = Mathf.Sqrt((1f-CNoiseAlpha)/(1f+CNoiseAlpha));
-    const float CNoiseEpsilon = 0.0001f;
+    const float CNoiseEpsilon = 0.001f;
 
     const float noiseVizFactor = 1.5f;
     
@@ -232,10 +232,10 @@ public partial class CustomRenderPipeline : RenderPipeline
             // TODO: initailizing to 1920x1080 because dynamic scale doesn't work
             coherentNoiseRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.R32G32B32A32_SFloat,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise1",filterMode: FilterMode.Point);
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise1",filterMode: FilterMode.Bilinear);
             coherentNoisePrevRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.R32G32B32A32_SFloat,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise2",filterMode: FilterMode.Point);
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise2",filterMode: FilterMode.Bilinear);
 
             // initialize coherent noise
             buffer.SetGlobalFloat("_CNoiseAlpha",CNoiseAlpha);
