@@ -49,8 +49,8 @@ Shader "Hidden/BoundaryOutline"
 			float4 frag (v2f i) : SV_Target
 			{
                 // TODO: SHOULD BE IN PIXEL SPACE, NOT UV SPACE
-                float dist = 2.0;
-                float noiseDist = 0.06;
+                float dist = 5.0;
+                float noiseDist = 0.3;
 
                 float2 uv1 = i.uv;
                 float2 uv2 = uv1 + px2uv(float2(-dist,0));
@@ -81,9 +81,9 @@ Shader "Hidden/BoundaryOutline"
                     noiseUV = uv5;
                 }
 
-                float3 n = blur(_CoherentNoise,noiseUV,1);
+                float3 n = blur(_CoherentNoise,noiseUV,10);
                 // // return float4(abs(50*n),1);
-                // // return 20*d;
+                // return 20*d;
                 // return float4(10*n,1);
                 float2 delta = n*noiseDist;
                 uv1 += delta;
@@ -92,6 +92,7 @@ Shader "Hidden/BoundaryOutline"
                 uv4 += delta;
                 uv5 += delta;
 
+                // TOOD: have to flip these uvs because image is flipped during blit to _EffectTemp
                 float3 s1 = tex2D(_EffectTemp,flipUV(uv1));
                 float3 s2 = tex2D(_EffectTemp,flipUV(uv2));
                 float3 s3 = tex2D(_EffectTemp,flipUV(uv3));

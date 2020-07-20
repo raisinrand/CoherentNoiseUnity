@@ -24,21 +24,27 @@ float2 px2uv(float2 px) {
  //this is the blur function... pass in standard col derived from tex2d(_MainTex,i.uv)
  float4 blur(sampler2D tex, float2 uv,float blurAmount) {
 
-     //get our base color...
-     half4 col = tex2D(tex, uv);
-     //total width/height of our blur "grid":
-     const int mSize = 8;
-     //this gives the number of times we'll iterate our blur on each side 
-     //(up,down,left,right) of our uv coordinate;
-     //NOTE that this needs to be a const or you'll get errors about unrolling for loops
-     const int iter = (mSize - 1) / 2;
-     //run loops to do the equivalent of what's written out line by line above
-     //(number of blur iterations can be easily sized up and down this way)
-     for (int i = -iter; i <= iter; ++i) {
-         for (int j = -iter; j <= iter; ++j) {
-             col += tex2D(tex, uv + px2uv(float2(i,j)*blurAmount));
-            }
-     }
-     //return blurred color
-     return col/mSize;
+    float Pi = 6.28318530718; // Pi*2
+    
+    float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
+    float Quality = 6.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
+   
+    float2 Radius = blurAmount/_ScreenParams.xy;
+    // Pixel colour
+    float4 Color = tex2D(tex, uv);
+    
+    // Blur calculations
+    for( float d=0.0; d<Pi; d+=Pi/Directions)
+    {
+		for(float i=1.0/Quality; i<=1.0; i+=1.0/Quality)
+        {
+			Color += tex2D( tex, uv+float2(cos(d),sin(d))*Radius*i);		
+        }
+    }
+    
+    // Output to screen
+    Color /= Quality * Directions - 15.0;
+    return Color;
+
+
  }
