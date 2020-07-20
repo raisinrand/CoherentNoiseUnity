@@ -36,7 +36,7 @@ public partial class CustomRenderPipeline : RenderPipeline
 
     public static bool pauseNoise;
 
-    const float CNoiseAlpha = 0.985f;
+    const float CNoiseAlpha = 0.993f;
     readonly float CNoiseK = Mathf.Sqrt((1f-CNoiseAlpha)/(1f+CNoiseAlpha));
     const float CNoiseEpsilon = 0.001f;
 
@@ -88,8 +88,8 @@ public partial class CustomRenderPipeline : RenderPipeline
         DrawCoherentNoise(context,camera);
         DrawVisibleGeometry(context, camera);
         DrawUnsupportedShaders(context, camera);
+        
         // POST
-        // ImageEffectBlit(buffer, testPost);
         if(displayMode == DisplayMode.ShowMotionVectors) {
             buffer.Blit(motionVectorsRT,BuiltinRenderTextureType.CameraTarget);
         } else if(displayMode == DisplayMode.ShowNoiseTex) {
@@ -97,19 +97,13 @@ public partial class CustomRenderPipeline : RenderPipeline
         } else if(displayMode == DisplayMode.ShowNoiseDiff) {
             ImageEffectBlit(buffer,noiseDiffMat);
         } else if (displayMode == DisplayMode.ShowOutline) {
-            // buffer.Blit(coherentNoiseRT,coherentNoiseRT,blurMat);
-            // ExecuteBuffer(context,camera);
+            
             // TODO: copying to temp rts because blit not setting maintex here for some reason
             buffer.GetTemporaryRT(effectTempRTID,camera.pixelWidth, camera.pixelHeight);
             buffer.Blit(BuiltinRenderTextureType.CameraTarget,effectTempRTID);
-            buffer.Blit(effectTempRTID,BuiltinRenderTextureType.CameraTarget,outlineMat);
+            buffer.Blit(BuiltinRenderTextureType.CameraTarget,BuiltinRenderTextureType.CameraTarget,outlineMat);
             buffer.ReleaseTemporaryRT(effectTempRTID);
-            ExecuteBuffer(context,camera);
         }
-
-
-        // DrawGizmos(context, camera);
-
         Submit(context, camera);
 
     }
@@ -128,9 +122,6 @@ public partial class CustomRenderPipeline : RenderPipeline
         blurMat = new Material(Shader.Find("Hidden/GaussianBlur"));
 
         matsGenerated = true;
-
-        
-        Debug.Log($"init: k={CNoiseK}");
     }
 
     void Setup(ScriptableRenderContext context, Camera camera)
@@ -177,7 +168,7 @@ public partial class CustomRenderPipeline : RenderPipeline
         );
 
         // SKYBOX
-        context.DrawSkybox(camera);
+        // context.DrawSkybox(camera);
 
         // TRANSPARENT
         // sortingSettings.criteria = SortingCriteria.CommonTransparent;
@@ -189,14 +180,14 @@ public partial class CustomRenderPipeline : RenderPipeline
     void DrawMotionVectors(ScriptableRenderContext context, Camera camera)
     {
         if(motionVectorsRT == null) {
-            // TODO: initailizing to 1920x1080 because dynamic scale doesn't work
+            // TODO: initializing to 1920x1080 because dynamic scale doesn't work
             motionVectorsRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.R32G32_SFloat, depthBufferBits: DepthBits.None,
             dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "MotionVectors");
             buffer.SetGlobalTexture("_MotionVectors",motionVectorsRT);
         }
         if(motionVectorsDepthRT == null) {
-            // TODO: initailizing to 1920x1080 because dynamic scale doesn't work
+            // TODO: initializing to 1920x1080 because dynamic scale doesn't work
             motionVectorsDepthRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.None, depthBufferBits: DepthBits.Depth32,
             dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "MotionVectorsDepth", filterMode: FilterMode.Bilinear);
@@ -229,13 +220,13 @@ public partial class CustomRenderPipeline : RenderPipeline
 
     void DrawCoherentNoise(ScriptableRenderContext context, Camera camera) {
         if(coherentNoiseRT == null) {
-            // TODO: initailizing to 1920x1080 because dynamic scale doesn't work
+            // TODO: initializing to 1920x1080 because dynamic scale doesn't work
             coherentNoiseRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.R32G32B32A32_SFloat,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise1",filterMode: FilterMode.Bilinear);
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise1",filterMode: FilterMode.Point);
             coherentNoisePrevRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.R32G32B32A32_SFloat,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise2",filterMode: FilterMode.Bilinear);
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise2",filterMode: FilterMode.Point);
 
             // initialize coherent noise
             buffer.SetGlobalFloat("_CNoiseAlpha",CNoiseAlpha);

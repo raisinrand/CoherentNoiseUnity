@@ -14,13 +14,20 @@ float4 u2s(float4 u) {
     return 2*(u-0.5);
 }
 
+float2 uv2px(float2 uv) {
+    return uv*_ScreenParams.xy;
+}
+float2 px2uv(float2 px) {
+    return float2(px.x/_ScreenParams.x,px.y/_ScreenParams.y);
+}
+
  //this is the blur function... pass in standard col derived from tex2d(_MainTex,i.uv)
  float4 blur(sampler2D tex, float2 uv,float blurAmount) {
 
      //get our base color...
      half4 col = tex2D(tex, uv);
      //total width/height of our blur "grid":
-     const int mSize = 10;
+     const int mSize = 8;
      //this gives the number of times we'll iterate our blur on each side 
      //(up,down,left,right) of our uv coordinate;
      //NOTE that this needs to be a const or you'll get errors about unrolling for loops
@@ -29,7 +36,7 @@ float4 u2s(float4 u) {
      //(number of blur iterations can be easily sized up and down this way)
      for (int i = -iter; i <= iter; ++i) {
          for (int j = -iter; j <= iter; ++j) {
-             col += tex2D(tex, float2(uv.x + i * blurAmount, uv.y + j * blurAmount)) * normpdf(float(i), 7);
+             col += tex2D(tex, uv + px2uv(float2(i,j)*blurAmount));
             }
      }
      //return blurred color
