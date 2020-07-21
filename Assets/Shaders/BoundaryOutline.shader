@@ -40,7 +40,7 @@ Shader "Hidden/BoundaryOutline"
 			
 			sampler2D _EffectTemp;
 			sampler2D _MotionVectorsDepth;
-			sampler2D _CoherentNoise;
+			sampler2D _CoherentNoiseSquash;
             float _CNoiseK;
 
             float2 flipUV(float2 uv) {
@@ -50,7 +50,7 @@ Shader "Hidden/BoundaryOutline"
 			{
                 // TODO: SHOULD BE IN PIXEL SPACE, NOT UV SPACE
                 float dist = 5.0;
-                float noiseDist = 0.3;
+                float noiseDist = 1;
 
                 float2 uv1 = i.uv;
                 float2 uv2 = uv1 + px2uv(float2(-dist,0));
@@ -81,7 +81,8 @@ Shader "Hidden/BoundaryOutline"
                     noiseUV = uv5;
                 }
 
-                float3 n = blur(_CoherentNoise,noiseUV,10);
+                // return 10*tex2D(_CoherentNoiseSquash,noiseUV);
+                float3 n = blur(_CoherentNoiseSquash,noiseUV,10);
                 // // return float4(abs(50*n),1);
                 // return 20*d;
                 // return float4(10*n,1);

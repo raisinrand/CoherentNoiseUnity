@@ -30,6 +30,7 @@ public partial class CustomRenderPipeline : RenderPipeline
     static RTHandle motionVectorsDepthPrevRT;
     static RTHandle coherentNoisePrevRT;
     static RTHandle coherentNoiseRT;
+    static RTHandle coherentNoiseSquashRT;
     static int effectTempRTID = Shader.PropertyToID("_EffectTemp");
     static int smoothCNoiseRTID = Shader.PropertyToID("_SmoothCNoise");
     bool matsGenerated = false;
@@ -223,16 +224,21 @@ public partial class CustomRenderPipeline : RenderPipeline
             // TODO: initializing to 1920x1080 because dynamic scale doesn't work
             coherentNoiseRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.R32G32B32A32_SFloat,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise1",filterMode: FilterMode.Point);
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise1",filterMode: FilterMode.Bilinear);
             coherentNoisePrevRT = RTHandles.Alloc(new Vector2(1920,1080), TextureXR.slices,
             colorFormat: GraphicsFormat.R32G32B32A32_SFloat,
-            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise2",filterMode: FilterMode.Point);
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoise2",filterMode: FilterMode.Bilinear);
+            coherentNoiseSquashRT = RTHandles.Alloc(new Vector2(512,512), TextureXR.slices,
+            colorFormat: GraphicsFormat.R32G32B32A32_SFloat,
+            dimension: TextureDimension.Tex2D, useDynamicScale: true, name: "CoherentNoiseSquash",filterMode: FilterMode.Bilinear);
 
             // initialize coherent noise
             buffer.SetGlobalFloat("_CNoiseAlpha",CNoiseAlpha);
             buffer.SetGlobalFloat("_CNoiseK",CNoiseK);
             buffer.SetGlobalFloat("_CNoiseEpsilon",CNoiseEpsilon);
             buffer.Blit(coherentNoiseRT,coherentNoiseRT,coherentNoiseInitMat);
+            
+            buffer.SetGlobalTexture("_CoherentNoiseSquash",coherentNoiseSquashRT);
         }
         // swap
         var temp = coherentNoisePrevRT;
@@ -250,6 +256,7 @@ public partial class CustomRenderPipeline : RenderPipeline
         }
 
         buffer.Blit(coherentNoiseRT,coherentNoiseRT,coherentNoiseMat);
+        buffer.Blit(coherentNoiseRT,coherentNoiseSquashRT);
 
         buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
         ExecuteBuffer(context,camera);

@@ -42,7 +42,7 @@ Shader "Hidden/CoherentNoiseInit"
 			}
 			float4 frag (v2f i) : SV_Target
 			{
-				return float4(_CNoiseK*whiteNoise(float3(i.uv.x,i.uv.y,1)),1);
+				return float4(_CNoiseK*W(float3(i.uv.x,i.uv.y,1)),1);
 			}
 			ENDCG
 		}

@@ -53,14 +53,14 @@ Shader "Hidden/CoherentNoise"
 			
 			float4 frag (v2f i) : SV_Target
 			{
-				float3 w = whiteNoise(float3(i.uv.x,i.uv.y,_Time.x));
+				float3 w = W(float3(i.uv.x,i.uv.y,_Time.x));
 				float2 motion = tex2D(_MotionVectors, i.uv);
 				float2 prevUV = i.uv-motion;
 				float3 prev = tex2D(_CoherentNoisePrev, prevUV);
 				// return float4(w,1);
 
 				// NAIVE ADVECTION
-				// return float4(prev,1);
+				// return float4(prev,1); 
 
 				// COHERENT NOISE
 				float depth = tex2D(_MotionVectorsDepth,i.uv);
